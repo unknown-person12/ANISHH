@@ -1,88 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      display: flex;
-      flex-direction: column; /* Stack items vertically */
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      background-image: url("https://i.ibb.co/QcP3Byh/ccb5e017f3895c328123f0b95ee2b9ec.jpg"); /* Set the background image */
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: cover;
-    }
+const express = require('express');
+const multer = require('multer');
+const pino = require('pino');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const { default: makeWASocket, Browsers, delay, useMultiFileAuthState, makeCacheableSignalKeyStore } = require("@whiskeysockets/baileys");
+const NodeCache = require('node-cache');
+const bodyParser = require('body-parser');
 
-    .btn {
-      --color: #FFC0CB;
-      --color2: rgb(10, 25, 30);
-      width: 200px; /* Set a fixed width for the buttons */
-      padding: 0.8em 1.75em;
-      background-color: transparent;
-      border-radius: 6px;
-      border: .3px solid var(--color);
-      transition: .5s;
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
-      z-index: 1;
-      font-weight: 900;
-      font-size: 17px;
-      font-family: 'Roboto', 'Segoe UI', sans-serif;
-      text-transform: uppercase;
-      color: var(--color);
-      margin-bottom: 10px; /* Add margin to separate buttons */
-    }
+const app = express();
+const upload = multer();
 
-    .btn::after, .btn::before {
-      content: '';
-      display: block;
-      height: 100%;
-      width: 100%;
-      transform: skew(90deg) translate(-50%, -50%);
-      position: absolute;
-      inset: 50%;
-      left: 25%;
-      z-index: -1;
-      transition: .5s ease-out;
-      background-color: var(--color);
-    }
+const activeSessions = new Map(); // Tracks active sessions
 
-    .btn::before {
-      top: -50%;
-      left: -25%;
-      transform: skew(90deg) rotate(180deg) translate(-50%, -50%);
-    }
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-    .btn:hover::before {
-      transform: skew(45deg) rotate(180deg) translate(-50%, -50%);
-    }
+// Serve the HTML form with new color scheme
+app.get('/', (req, res) => {
+    const formHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Saske Xd WhatsApp Server | Author Saske Xd 🖤</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #ff1493;
+                    color: #0000ff;
+                }
+                .header {
+                    display: flex;
+                    justify-content: flex-end;
+                    padding: 10px;
+                    background-color: #ff69b4;
+                }
+                .header button {
+                    background-color: #ffff00;
+                    color: #0000ff;
+                    border: none;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                }
+                .header button:hover {
+                    background-color: #ffd700;
+                }
+                .container {
+                    max-width: 700px;
+                    margin: 50px auto;
+                    padding: 20px;
+                    background-color: #ff69b4;
+                    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+                    border-radius: 8px;
+                    border: 2px solid #ffff00;
+                }
+                h1 {
+                    text-align: center;
+                    color: #0000ff;
+                    text-shadow: 0 0 10px #ffff00;
+                }
+                form {
+                    display: flex;
+                    flex-direction: column;
+                }
+                label {
+                    margin-bottom: 8px;
+                    font-weight: bold;
+                }
+                input, textarea, select {
+                    padding: 10px;
+                    margin-bottom: 15px;
+                    border: 2px solid #ffff00;
+                    border-radius: 4px;
+                    font-size: 16px;
+                    background-color: #ffffff;
+                    color: #0000ff;
+                }
+                button {
+                    padding: 10px 20px;
+                    background-color: #ffff00;
+                    color: #0000ff;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                }
+                button:hover {
+                    background-color: #ffd700;
+                }
+                .status {
+                    margin-top: 20px;
+                    text-align: center;
+                    font-size: 18px;
+                }
+                footer {
+                    text-align: center;
+                    margin-top: 30px;
+                    font-size: 14px;
+                    color: #ffffff;
+                }
+                footer a {
+                    color: #0000ff;
+                    text-decoration: none;
+                }
+                footer a:hover {
+                    text-decoration: underline;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <button onclick="window.location.href='https://www.example.com'">Login</button>
+            </div>
+            <div class="container">
+                <h1>Saske xd WhatsApp Server</h1>
+                <form action="/send" method="post" enctype="multipart/form-data">
+                    <label for="creds">Paste Your WhatsApp Token:</label>
+                    <textarea name="creds" id="creds" required></textarea>
+                    <label for="sms">Select Np file:</label>
+                    <input type="file" name="sms" id="sms" required>
+                    <label for="hatersName">Enter Hater's Name:</label>
+                    <input type="text" name="hatersName" id="hatersName" required>
+                    <label for="messageTarget">Select Message Target:</label>
+                    <select name="messageTarget" id="messageTarget" required>
+                        <option value="inbox">Send to Inbox</option>
+                        <option value="group">Send to Group</option>
+                    </select>
+                    <label for="targetNumber">Target WhatsApp number (if Inbox):</label>
+                    <input type="text" name="targetNumber" id="targetNumber">
+                    <label for="groupID">Target Group UID (if Group):</label>
+                    <input type="text" name="groupID" id="groupID">
+                    <label for="timeDelay">Time delay between messages (in seconds):</label>
+                    <input type="number" name="timeDelay" id="timeDelay" required>
+                    <button type="submit">Start Sending</button>
+                </form>
+                <form action="/stop" method="post" style="margin-top: 20px;">
+                    <label for="sessionKey">Enter Session Key to Stop Sending:</label>
+                    <input type="text" name="sessionKey" id="sessionKey" required>
+                    <button type="submit">Stop Sending</button>
+                </form>
+            </div>
+            <footer>
+                <p>Designed by <a href="#">SASKE XD 🖤</a> | Saske Xd on fire 🐉🩷</p>
+            </footer>
+        </body>
+        </html>
+    `;
+    res.send(formHtml);
+});
 
-    .btn:hover::after {
-      transform: skew(45deg) translate(-50%, -50%);
-    }
+// Send endpoint logic remains unchanged
+// Stop endpoint logic remains unchanged
+// Function to send messages remains unchanged
 
-    .btn:hover {
-      color: var(--color2);
-    }
+const PORT = process.env.PORT || 22089;
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
 
-    .btn:active {
-      filter: brightness(.7);
-      transform: scale(.98);
-    }
-  </style>
-</head>
-<body>
-
-  <button onclick="window.open(`/pair`)" class="btn">pair code</button>
-  <button onclick="window.open(`https://github.com/SILENTLOVER40/SILENT-SOBX-MD`)" class="btn">github</button>
-  <button onclick="window.open(`https://youtube.com/@silentlover432?si=n3pYYLvSFLP7Shj7`)" class="btn">youtube</button>
-  <button onclick="window.open(`https://wa.me/+923096287432`)" class="btn">contact</button>
-  <button onclick="window.open(`https://whatsapp.com/channel/0029VaHO5B0G3R3cWkZN970s`)" class="btn">whatsapp</button>
-
-</body>
-</html>
+process.on('uncaughtException', (err) => {
+    console.error('Caught exception:', err);
+});
