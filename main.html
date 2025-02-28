@@ -1,25 +1,4 @@
-const express = require('express');
-const multer = require('multer');
-const pino = require('pino');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const { default: makeWASocket, Browsers, delay, useMultiFileAuthState, makeCacheableSignalKeyStore } = require("@whiskeysockets/baileys");
-const NodeCache = require('node-cache');
-const bodyParser = require('body-parser');
-
-const app = express();
-const upload = multer();
-
-const activeSessions = new Map(); // Tracks active sessions
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-// Serve the HTML form with new color scheme
-app.get('/', (req, res) => {
-    const formHtml = `
-        DOCTYPE html>
+DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -114,19 +93,3 @@ app.get('/', (req, res) => {
 
 </body>
 </html>
-    `;
-    res.send(formHtml);
-});
-
-// Send endpoint logic remains unchanged
-// Stop endpoint logic remains unchanged
-// Function to send messages remains unchanged
-
-const PORT = process.env.PORT || 22089;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('Caught exception:', err);
-});
